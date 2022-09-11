@@ -1,4 +1,4 @@
-all:				Server.class Socket.class HostData.class ICommand.class CreateCommand.class ListCommand.class HeartBeatCommand.class Peer.class PeerClient.class PeerHeartbeat.class
+all:				Server.class Socket.class HostData.class ICommand.class CreateCommand.class ListCommand.class HeartBeatCommand.class Peer.class PeerClient.class PeerHeartbeat.class PeerThread.class
 
 Server.class:		server/Server.java
 				@javac server/Server.java
@@ -29,6 +29,9 @@ PeerClient.class:	server/peer/PeerClient.java
 
 PeerHeartbeat.class:	server/peer/PeerHeartbeat.java
 						@javac server/peer/PeerHeartbeat.java
+
+PeerThread.class:		server/peer/PeerThread.java
+						@javac server/peer/PeerThread.java
 
 clean:
 				@rm -rf *.class *~

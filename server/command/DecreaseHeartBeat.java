@@ -3,39 +3,38 @@ package server.command;
 import java.net.InetAddress;
 import java.util.Map;
 import java.util.List;
+import java.util.ListIterator;
 
 import server.HostData;
 
-public class DecreaseHeartBeat implements ICommand<Void>{
+public class DecreaseHeartBeat implements ICommand<Void> {
 
-    public Map<InetAddress,Integer> timeout;
+    public Map<String, Integer> timeout;
     public List<HostData> hostList;
 
-    public DecreaseHeartBeat(Map<InetAddress, Integer> timeout, List<HostData> hostList){
+    public DecreaseHeartBeat(Map<String, Integer> timeout, List<HostData> hostList) {
         this.timeout = timeout;
         this.hostList = hostList;
     }
 
-    public Void run(){
-
-        for( int i = 0 ; i < hostList.size(); i++){
-            
-            InetAddress currentAddress = hostList.get(i).getAddress();
-            int newValue = timeout.get(currentAddress) - 1;
-            if(newValue == 0) {
-                String message = "User " + hostList.get(i).getHostName() + " is INACTIVE.";
+    public Void run() {
+        ListIterator<HostData> iterator = hostList.listIterator();
+        while (iterator.hasNext()) {
+            HostData nextHostData = iterator.next();
+            int newValue = timeout.get(nextHostData.getHostName()) - 1;
+            if (newValue == 0) {
+                String message = "User " + nextHostData.getHostName() + " is INACTIVE.";
                 System.out.println(message);
 
-                timeout.remove(currentAddress);
-                hostList.remove(i);
+                timeout.remove(nextHostData.getHostName());
+                iterator.remove();
+            } else {
+                timeout.put(nextHostData.getHostName(), newValue);
             }
-            else {
-                timeout.put(currentAddress, newValue);
-            }
+
         }
 
-
-    return null;
+        return null;
     }
-    
+
 }

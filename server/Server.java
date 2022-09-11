@@ -16,7 +16,7 @@ public class Server {
     static Socket socket;
     static int port = 9000;
 
-    static HashMap<InetAddress,Integer> timeout = new HashMap<InetAddress,Integer>();
+    static HashMap<String,Integer> timeout = new HashMap<String,Integer>();
     static List<HostData> hostList = new ArrayList<>();
 
 
@@ -45,7 +45,6 @@ public class Server {
                 } else {
                     response = "NOT OK";
 				}
-                System.out.println("Here");
                 socket.sendPacket(response, address, port);
             }
 

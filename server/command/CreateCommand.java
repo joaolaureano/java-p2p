@@ -14,7 +14,6 @@ public class CreateCommand implements ICommand<Boolean>{
         this.timeout = timeout;
     }
 
-
     @Override
     public Boolean run() {
         if(hostList.contains(newHost))return false;

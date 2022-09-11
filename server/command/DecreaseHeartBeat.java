@@ -31,9 +31,7 @@ public class DecreaseHeartBeat implements ICommand<Void> {
             } else {
                 timeout.put(nextHostData.getHostName(), newValue);
             }
-
         }
-
         return null;
     }
 

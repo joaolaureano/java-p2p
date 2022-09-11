@@ -24,15 +24,12 @@ public class Server {
         socket = new Socket(port);
         while(true){
             try {
-                
-            
             SocketPayload socketPayload = socket.receivePacket();
 
             String vars[] = socketPayload.getContent().split("\\s");
             InetAddress address = socketPayload.getAddress();
             int port = socketPayload.getPort();
             String hostName = vars[1];
-
             
             if(vars[0].equals("create") && vars.length > 1){
                 HostData hostData = new HostData(address,hostName,port);

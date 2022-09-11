@@ -33,7 +33,6 @@ public class PeerThread  extends Thread{
 			try {
 				String receivedPacket = socket.receivePacket().getContent();
 				System.out.println("Received: " + receivedPacket);
-				System.out.println("here");
 
 			} catch (Exception e) {
 			}

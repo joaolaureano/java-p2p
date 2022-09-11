@@ -29,9 +29,7 @@ public class HostData {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((address == null) ? 0 : address.hashCode());
         result = prime * result + ((hostName == null) ? 0 : hostName.hashCode());
-        result = prime * result + hostPort;
         return result;
     }
 
@@ -44,17 +42,10 @@ public class HostData {
         if (getClass() != obj.getClass())
             return false;
         HostData other = (HostData) obj;
-        if (address == null) {
-            if (other.address != null)
-                return false;
-        } else if (!address.equals(other.address))
-            return false;
         if (hostName == null) {
             if (other.hostName != null)
                 return false;
         } else if (!hostName.equals(other.hostName))
-            return false;
-        if (hostPort != other.hostPort)
             return false;
         return true;
     }

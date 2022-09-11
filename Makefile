@@ -1,22 +1,34 @@
-all:				p2pServer.class p2pPeer.class ContentManagement.class
+all:				Server.class Socket.class HostData.class ICommand.class CreateCommand.class ListCommand.class HeartBeatCommand.class Peer.class PeerClient.class PeerHeartbeat.class
 
-p2pServer.class:		server/p2pServer.java
-				@javac server/p2pServer.java
+Server.class:		server/Server.java
+				@javac server/Server.java
 
-p2pPeer.class:			p2pPeerThread.class p2pPeerHeartbeat.class p2pPeerClient.class peer/p2pPeer.java
-				@javac peer/p2pPeer.java
+Socket.class:		server/Socket.java
+				@javac server/Socket.java
 
-p2pPeerThread.class:		peer/p2pPeerThread.java
-				@javac peer/p2pPeerThread.java
+HostData.class:		server/HostData.java
+				@javac server/HostData.java
 				
-p2pPeerHeartbeat.class:		peer/p2pPeerHeartbeat.java
-				@javac peer/p2pPeerHeartbeat.java
+ICommand.class:		server/command/ICommand.java
+				@javac server/command/ICommand.java
 
-p2pPeerClient.class:		peer/p2pPeerClient.java
-				@javac peer/p2pPeerClient.java
-				
-ContentManagement.class:	content_mngnt/ContentManagement.java
-				@javac content_mngnt/ContentManagement.java
+CreateCommand.class:		server/command/CreateCommand.java
+					@javac server/command/CreateCommand.java
+
+HeartBeatCommand.class:		server/command/HeartBeatCommand.java
+					@javac server/command/HeartBeatCommand.java
+
+ListCommand.class:		server/command/ListCommand.java
+					@javac server/command/ListCommand.java
+
+Peer.class:			server/peer/Peer.java
+					@javac server/peer/Peer.java
+
+PeerClient.class:	server/peer/PeerClient.java
+					@javac server/peer/PeerClient.java
+
+PeerHeartbeat.class:	server/peer/PeerHeartbeat.java
+						@javac server/peer/PeerHeartbeat.java
 
 clean:
 				@rm -rf *.class *~

@@ -15,7 +15,7 @@ public class HeartBeatCommand implements ICommand<Boolean>{
 
     public Boolean run(){
         if(timeout.containsKey(hostData.getHostName())){
-            System.out.print("\nheartbeat: " + hostData.getHostName());
+            // System.out.print("\nheartbeat: " + hostData.getHostName());
             this.timeout.put(hostData.getHostName(), 15);
     }
         return true;

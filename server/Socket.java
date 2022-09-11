@@ -37,7 +37,7 @@ public class Socket {
             return new SocketPayload(datagramPacket.getAddress(), datagramPacket.getPort(), content);
 
         } catch (IOException e) {
-            // this.close();
+            
         }
 
         return null;

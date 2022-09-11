@@ -12,7 +12,7 @@ public class Peer {
 			return;
 		} else {
 			new PeerThread(args).start();
-			new PeerHeartbeat(args).start();
+			// new PeerHeartbeat(args).start();
 			new PeerClient(args).start();
 		}
 	}

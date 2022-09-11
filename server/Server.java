@@ -11,6 +11,7 @@ import server.command.CreateCommand;
 import server.command.DecreaseHeartBeat;
 import server.command.HeartBeatCommand;
 import server.command.ICommand;
+import server.command.ListCommand;
 
 public class Server {
     static Socket socket;
@@ -36,12 +37,8 @@ public class Server {
                 ICommand<Boolean> command = new CreateCommand(hostList, timeout, hostData);
                 boolean commandResult = command.run();
                 
-                String response;
-                if(commandResult){
-                    response = "OK"	;
-                } else {
-                    response = "NOT OK";
-				}
+                String response = commandResult ? "OK" : "NOT OK";
+                
                 socket.sendPacket(response, address, port);
             }
 
@@ -51,10 +48,20 @@ public class Server {
                 command.run();
                 
             }
+            System.out.println(vars[0]);
+            if(vars[0].equals("list") && vars.length > 1){
+
+                ICommand<String> command = new ListCommand(hostList);
+                String[] response = command.run().split("\r?\n|\r");
+
+                for(String responseEntry: response){
+                    socket.sendPacket(responseEntry, address, port);
+                }
+            }
         } catch (Exception e) {
             
             ICommand<Void> command = new DecreaseHeartBeat(timeout, hostList);
-            command.run();
+            // command.run();
             System.out.print(".");
         }
     }

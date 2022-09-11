@@ -6,7 +6,6 @@ import java.io.InputStreamReader;
 import java.net.InetAddress;
 
 import server.Socket;
-import server.Socket.SocketPayload;
 
 public class PeerClient extends Thread{
     protected Socket socket;
@@ -41,23 +40,27 @@ public class PeerClient extends Thread{
 				}
             }
             catch(IOException e){
-                System.out.println(e.getMessage());
+                // System.out.println(e.getMessage());
             }
 
             try{
             System.out.println("Sending packet");
+            System.out.println(resource);
+            System.out.println(addr.toString());
+            System.out.println(peerPort);
+            System.out.println("TEST");
                 this.socket.sendPacket(resource, addr, peerPort);
                 while(true){
                     try {
                         String socketResponse = this.socket.receivePacket().getContent();
                         System.out.println("Received from server -> " + socketResponse);
                     } catch (Exception e) {
-                        System.out.println(e.getMessage());
+                        break;
                     }
                 }
             }
             catch(Exception e){
-                System.out.println(e.getMessage());
+                // System.out.println(e.getMessage());
             }
 
         }

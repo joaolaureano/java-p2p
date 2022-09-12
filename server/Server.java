@@ -48,7 +48,6 @@ public class Server {
                 command.run();
                 
             }
-            System.out.println(vars[0]);
             if(vars[0].equals("list") && vars.length > 1){
 
                 ICommand<String> command = new ListCommand(hostList);
@@ -61,7 +60,7 @@ public class Server {
         } catch (Exception e) {
             
             ICommand<Void> command = new DecreaseHeartBeat(timeout, hostList);
-            // command.run();
+            command.run();
             System.out.print(".");
         }
     }

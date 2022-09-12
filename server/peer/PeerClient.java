@@ -45,10 +45,9 @@ public class PeerClient extends Thread{
 
             try{
             System.out.println("Sending packet");
-            System.out.println(resource);
-            System.out.println(addr.toString());
-            System.out.println(peerPort);
-            System.out.println("TEST");
+            // System.out.println(resource);
+            // System.out.println(addr.toString());
+            // System.out.println(peerPort);
                 this.socket.sendPacket(resource, addr, peerPort);
                 while(true){
                     try {

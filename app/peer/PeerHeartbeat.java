@@ -1,9 +1,9 @@
-package server.peer;
+package app.peer;
 
 import java.io.IOException;
 import java.net.InetAddress;
 
-import server.Socket;
+import app.socket.Socket;
 
 public class PeerHeartbeat extends Thread{
 

@@ -1,4 +1,4 @@
-package server.peer;
+package app.peer;
 
 import java.io.IOException;
 

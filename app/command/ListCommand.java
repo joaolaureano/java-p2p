@@ -1,9 +1,9 @@
-package server.command;
+package app.command;
 import java.net.InetAddress;
 import java.util.List;
 
-import server.HostData;
-import server.Socket;
+import app.server.HostData;
+import app.socket.Socket;
 
 public class ListCommand implements ICommand<String> {
     List<HostData> connected_hosts;

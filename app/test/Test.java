@@ -1,4 +1,4 @@
-package server.test;
+package app.test;
 import java.security.NoSuchAlgorithmException;
 
 public class Test {

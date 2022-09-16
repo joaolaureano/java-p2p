@@ -1,4 +1,4 @@
-package server.test;
+package app.test;
 import java.util.HashMap;
 
 public class DHTBucket<T> extends IDHTBucket<T> {

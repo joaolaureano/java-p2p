@@ -1,4 +1,4 @@
-package server.command;
+package app.command;
 
 public interface ICommand<T>{
 

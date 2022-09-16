@@ -1,11 +1,11 @@
-package server.peer;
+package app.peer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 
-import server.Socket;
+import app.socket.Socket;
 
 public class PeerClient extends Thread{
     protected Socket socket;

@@ -1,10 +1,10 @@
-package server.peer;
+package app.peer;
 
 import java.io.IOException;
 import java.net.InetAddress;
 
-import server.Socket;
-import server.Socket.SocketPayload;
+import app.socket.Socket;
+import app.socket.Socket.SocketPayload;
 
 public class PeerThread  extends Thread{
 

@@ -1,8 +1,9 @@
-package server.command;
+package app.command;
 
 import java.util.HashMap;
 import java.util.List;
-import server.HostData;
+
+import app.server.HostData;
 
 public class CreateCommand implements ICommand<Boolean>{
     List<HostData> hostList;

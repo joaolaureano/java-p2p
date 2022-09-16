@@ -1,4 +1,4 @@
-package server;
+package app.server;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -6,12 +6,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import server.Socket.SocketPayload;
-import server.command.CreateCommand;
-import server.command.DecreaseHeartBeat;
-import server.command.HeartBeatCommand;
-import server.command.ICommand;
-import server.command.ListCommand;
+import app.command.CreateCommand;
+import app.command.DecreaseHeartBeat;
+import app.command.HeartBeatCommand;
+import app.command.ICommand;
+import app.command.ListCommand;
+import app.socket.Socket;
+import app.socket.Socket.SocketPayload;
 
 public class Server {
     static Socket socket;

@@ -1,8 +1,8 @@
-package server.command;
+package app.command;
 
 import java.util.HashMap;
 
-import server.HostData;
+import app.server.HostData;
 
 public class HeartBeatCommand implements ICommand<Boolean>{
     HashMap<String,Integer> timeout;

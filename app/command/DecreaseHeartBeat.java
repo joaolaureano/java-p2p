@@ -1,11 +1,12 @@
-package server.command;
+package app.command;
 
 import java.net.InetAddress;
 import java.util.Map;
+
+import app.server.HostData;
+
 import java.util.List;
 import java.util.ListIterator;
-
-import server.HostData;
 
 public class DecreaseHeartBeat implements ICommand<Void> {
 

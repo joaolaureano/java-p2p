@@ -30,24 +30,24 @@ public class PeerClient extends Thread{
 
             try{
                 str = obj.readLine();
+                System.out.println("PEGANDO O STR " + str);
 				String vars[] = str.split("\\s");
-				addr = InetAddress.getByName(vars[2]);
-				String str2 = vars[0] + " " + vars[1];
-				resource = str2;
-				if (vars.length == 4) {
-					System.out.println("Sending message to peer on port " + vars[3]);
-					peerPort = Integer.parseInt(vars[3]);
-				}
+				addr = InetAddress.getByName(vars[vars.length - 2]);
+                String str2 = "" ;
+                for(int i = 0; i < vars.length - 2; i++){
+                    str2 += " " + vars[i];
+                }
+				resource = str2.trim();
             }
             catch(IOException e){
-                // System.out.println(e.getMessage());
+                System.out.println(e.getMessage());
             }
 
             try{
             System.out.println("Sending packet");
-            // System.out.println(resource);
-            // System.out.println(addr.toString());
-            // System.out.println(peerPort);
+            System.out.println(resource);
+            System.out.println(addr.toString());
+            System.out.println(peerPort);
                 this.socket.sendPacket(resource, addr, peerPort);
                 while(true){
                     try {

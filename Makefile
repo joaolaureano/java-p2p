@@ -1,37 +1,37 @@
 all:				Server.class Socket.class HostData.class ICommand.class CreateCommand.class ListCommand.class HeartBeatCommand.class Peer.class PeerClient.class PeerHeartbeat.class PeerThread.class
 
-Server.class:		server/Server.java
-				@javac server/Server.java
+Server.class:		app/server/Server.java
+				@javac app/server/Server.java
 
-Socket.class:		server/Socket.java
-				@javac server/Socket.java
+Socket.class:		app/socket/Socket.java
+				@javac app/socket/Socket.java
 
-HostData.class:		server/HostData.java
-				@javac server/HostData.java
+HostData.class:		app/server/HostData.java
+				@javac app/server/HostData.java
 				
-ICommand.class:		server/command/ICommand.java
-				@javac server/command/ICommand.java
+ICommand.class:		app/command/ICommand.java
+				@javac app/command/ICommand.java
 
-CreateCommand.class:		server/command/CreateCommand.java
-					@javac server/command/CreateCommand.java
+CreateCommand.class:		app/command/CreateCommand.java
+					@javac app/command/CreateCommand.java
 
-HeartBeatCommand.class:		server/command/HeartBeatCommand.java
-					@javac server/command/HeartBeatCommand.java
+HeartBeatCommand.class:		app/command/HeartBeatCommand.java
+					@javac app/command/HeartBeatCommand.java
 
-ListCommand.class:		server/command/ListCommand.java
-					@javac server/command/ListCommand.java
+ListCommand.class:		app/command/ListCommand.java
+					@javac app/command/ListCommand.java
 
-Peer.class:			server/peer/Peer.java
-					@javac server/peer/Peer.java
+Peer.class:			app/peer/Peer.java
+					@javac app/peer/Peer.java
 
-PeerClient.class:	server/peer/PeerClient.java
-					@javac server/peer/PeerClient.java
+PeerClient.class:	app/peer/PeerClient.java
+					@javac app/peer/PeerClient.java
 
-PeerHeartbeat.class:	server/peer/PeerHeartbeat.java
-						@javac server/peer/PeerHeartbeat.java
+PeerHeartbeat.class:	app/peer/PeerHeartbeat.java
+						@javac app/peer/PeerHeartbeat.java
 
-PeerThread.class:		server/peer/PeerThread.java
-						@javac server/peer/PeerThread.java
+PeerThread.class:		app/peer/PeerThread.java
+						@javac app/peer/PeerThread.java
 
 clean:
 				@rm -rf *.class *~

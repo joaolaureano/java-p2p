@@ -10,8 +10,13 @@ public class Socket {
     int BYTE = 1024;
     DatagramSocket datagramSocket;
 
-    public Socket(int port) throws SocketException{
-        this.datagramSocket = new DatagramSocket(port);
+    public Socket(int port) {
+        try {
+            this.datagramSocket = new DatagramSocket(port);
+        } catch (SocketException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 
     public void sendPacket(String content, InetAddress addr, int port) {

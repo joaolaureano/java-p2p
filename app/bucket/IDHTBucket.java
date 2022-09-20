@@ -1,4 +1,4 @@
-package app.test;
+package app.bucket;
 
 import java.util.Map;
 

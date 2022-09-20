@@ -1,4 +1,4 @@
-package app.test;
+package app.bucket;
 import java.security.NoSuchAlgorithmException;
 
 public class Test {
@@ -12,7 +12,6 @@ public class Test {
         // String s = "test";
         // MessageDigest m = MessageDigest.getInstance("MD5");
         // m.update(s.getBytes(), 0, s.length());
-
 
         System.out.println(bucket_1);
         System.out.println(bucket_2);

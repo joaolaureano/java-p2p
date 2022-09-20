@@ -1,4 +1,4 @@
-package app.test;
+package app.bucket;
 
 import java.math.BigInteger;
 
@@ -14,7 +14,7 @@ public class DHTHashMd5 extends IDHTHash{
 
     @Override
     public boolean containsHash(String hash) {
-        Long hashInt = new BigInteger(1, hash.getBytes()).longValue();
+        Long hashInt = new BigInteger(hash, 16).longValue();
         
         return hashInt >= MIN_SIZE && hashInt <= MAX_SIZE;
     }

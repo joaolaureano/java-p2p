@@ -1,4 +1,4 @@
-package app.test;
+package app.bucket;
 
 public abstract class IDHTHash {
     

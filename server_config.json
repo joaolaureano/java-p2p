@@ -1,7 +1,7 @@
 {
     "server_1":{
         "port":"9000",
-        "next_port":"1234",
+        "next_port":"9001",
         "ring_position":"1"
     },
     "server_2":{

@@ -30,7 +30,6 @@ public class PeerClient extends Thread{
 
             try{
                 str = obj.readLine();
-                System.out.println("PEGANDO O STR " + str);
 				String vars[] = str.split("\\s");
 				addr = InetAddress.getByName(vars[vars.length - 2]);
                 String str2 = "" ;
@@ -44,10 +43,6 @@ public class PeerClient extends Thread{
             }
 
             try{
-            System.out.println("Sending packet");
-            System.out.println(resource);
-            System.out.println(addr.toString());
-            System.out.println(peerPort);
                 this.socket.sendPacket(resource, addr, peerPort);
                 while(true){
                     try {

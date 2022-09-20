@@ -28,13 +28,21 @@ public class Server {
     static IDHTBucket<String> bucket;
 
     public static void main(String[] args) throws IOException {
-        port = Integer.parseInt(args[0]);
+        // port = Integer.parseInt(args[0]);
+        port = 9001;
 
         socket = new Socket(port);
-        next_sp = Integer.parseInt(args[1]);
+        // next_sp = Integer.parseInt(args[1]);
+        next_sp = 9000;
 
-        int ring_position = Integer.parseInt(args[2]);
-        int ring_size = Integer.parseInt(args[3]);
+        // int ring_position = Integer.parseInt(args[2]);
+        int ring_position = 2;
+
+        // int ring_size = Integer.parseInt(args[3]);
+        int ring_size = 2;
+
+        System.out.println("SETUP SERVER AT PORT -> " + port);
+        System.out.println("NEXT SERVER PORT -> " + next_sp);
 
         bucket = new DHTBucket<String>(ring_size, ring_position);
 
@@ -46,6 +54,8 @@ public class Server {
                 InetAddress address = socketPayload.getAddress();
                 int port = socketPayload.getPort();
                 String hostName = vars[1];
+                
+                System.out.println(String.join(" ", vars));
 
                 if (vars[0].equals("create") && vars.length > 1) {
                     HostData hostData = new HostData(address, hostName, port);
@@ -75,21 +85,24 @@ public class Server {
 
                     String hash = vars[2];
 
+                    InetAddress host = InetAddress.getByName("localhost");
+
                     ICommand<Boolean> command = new RegisterCommand(bucket, hash, "DUMB DATA");
 
                     boolean response = command.run();
                     if(response){
                         System.out.println("DATA STORED.");
+                        
+
                     }
                     else{
-                        String response2 = String.join("", vars);
+                        // String response2 = String.join(" ", vars);
                         
-                        System.out.println("SENDING TO NEXT -> " + response2);
-                        socket.sendPacket(String.join("", vars), InetAddress.getLocalHost(), next_sp);
+                        socket.sendPacket(String.join(" ", vars), host, next_sp);
                     }
 
                 }
-
+                // 9223372036854775805
             } catch (Exception e) {
                 ICommand<Void> command = new DecreaseHeartBeat(timeout, hostList);
                 command.run();

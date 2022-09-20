@@ -1,6 +1,5 @@
 package app.command;
 
-
 import app.bucket.IDHTBucket;
 
 public class RegisterCommand implements ICommand<Boolean>{

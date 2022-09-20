@@ -4,17 +4,19 @@ import java.io.IOException;
 import java.net.InetAddress;
 
 import app.socket.Socket;
-import app.socket.Socket.SocketPayload;
 
 public class PeerThread  extends Thread{
 
     protected Socket socket;
 	protected String content;
+	protected int server_port;
 	protected InetAddress addr = null;
+
 
 	public PeerThread(String[] args) throws IOException{
 
 		int port = Integer.parseInt(args[2]);
+		server_port = Integer.parseInt(args[3]);
 		addr = InetAddress.getByName(args[0]);
 		socket = new Socket(port);
 		content = args[1];
@@ -23,7 +25,7 @@ public class PeerThread  extends Thread{
 
 	public void run(){
 		try {
-			socket.sendPacket(content, addr, 9000);
+			socket.sendPacket(content, addr, server_port);
 		} catch (Exception e) {
 			socket.close();
 		}

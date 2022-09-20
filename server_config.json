@@ -4,11 +4,9 @@
         "next_port":"1234",
         "ring_position":"1"
     },
-
     "server_2":{
         "port":"9001",
         "next_port":"1235",
         "ring_position":"2"
     }
-
 }

@@ -9,6 +9,8 @@ public class PeerHeartbeat extends Thread{
 
     protected Socket socket;
     protected String data = "";
+	protected int port;
+	protected int server_port;
     protected InetAddress addr = null;
 
     
@@ -17,15 +19,21 @@ public class PeerHeartbeat extends Thread{
         this.data = ("heartbeat " + vars[1]);
 		addr = InetAddress.getByName(args[0]);
 		
-        int porta = Integer.parseInt(args[2]) + 100;
+        port = Integer.parseInt(args[2]);
+
+		server_port = Integer.parseInt(args[3]);
+		
+		System.out.println("HEART_BEAT_PORT -> " + port);
+		System.out.println("SERVER_PORT -> " + server_port);
+
 		// cria um socket datagrama
-		this.socket = new Socket(porta);
+		this.socket = new Socket(port + 100);
     }
 
     public void run(){
 		while (true) {
 			try {
-				this.socket.sendPacket(data, addr, 9000);
+				this.socket.sendPacket(data, addr, server_port);
 			} catch (Exception e) {
 				socket.close();
 			}

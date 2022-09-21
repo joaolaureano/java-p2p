@@ -5,7 +5,7 @@ import java.math.BigInteger;
 public class DHTHashMd5 extends IDHTHash{
     
     static {
-        max_hashes = (long) Math.pow(2, 128);
+        max_hashes = new BigInteger("2").pow(128); 
     }
     
     public DHTHashMd5(int numberOfNodes, int currentPosition){
@@ -14,15 +14,16 @@ public class DHTHashMd5 extends IDHTHash{
 
     @Override
     public boolean containsHash(String hash) {
-        Long hashInt = new BigInteger(hash, 16).longValue();
-        
-        return hashInt >= MIN_SIZE && hashInt <= MAX_SIZE;
+        BigInteger hashInt = new BigInteger(hash, 16);
+        boolean biggerEqualMinimum = MIN_SIZE.compareTo(hashInt) <= 0;
+        boolean smallerEqualMaximum = MAX_SIZE.compareTo(hashInt) >= 0;
+        return  biggerEqualMinimum && smallerEqualMaximum;
     }
 
     private void calculateInterval(int numberOfNodes, int currentPosition){
-        
-        this.MAX_SIZE = ((max_hashes / numberOfNodes) * currentPosition) - 1;
-        this.MIN_SIZE = ((max_hashes / numberOfNodes) * (currentPosition - 1));
+
+        this.MAX_SIZE = (max_hashes.divide(BigInteger.valueOf(numberOfNodes)).multiply(BigInteger.valueOf(currentPosition)).subtract(BigInteger.valueOf(1)));
+        this.MIN_SIZE = (max_hashes.divide(BigInteger.valueOf(numberOfNodes)).multiply(BigInteger.valueOf(currentPosition - 1)));
 
     }
     

@@ -3,5 +3,10 @@
         "name":"joao",
         "port":"5000",
         "server_port":"9000"
+    },
+    "peer_2":{
+        "name":"mary",
+        "port":"7000",
+        "server_port":"9001"
     }
 }

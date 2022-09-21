@@ -19,12 +19,13 @@ public class PeerHeartbeat extends Thread{
         this.data = ("heartbeat " + vars[1]);
 		addr = InetAddress.getByName(args[0]);
 		
-        port = Integer.parseInt(args[2]);
+        port = Integer.parseInt(args[2]) + 100;
 
 		server_port = Integer.parseInt(args[3]);
 		
 		System.out.println("HEART_BEAT_PORT -> " + port);
 		System.out.println("SERVER_PORT -> " + server_port);
+		System.out.println("USER NAME -> " + vars[1]);
 
 		// cria um socket datagrama
 		this.socket = new Socket(port + 100);

@@ -8,15 +8,5 @@
         "port":"9001",
         "next_port":"9000",
         "ring_position":"2"
-    },
-    // "server_3":{
-    //     "port":"9002",
-    //     "next_port":"9003",
-    //     "ring_position":"3"
-    // },
-    // "server_4":{
-    //     "port":"9003",
-    //     "next_port":"9000",
-    //     "ring_position":"4"
-    // }
+    }
 }

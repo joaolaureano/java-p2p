@@ -3,10 +3,5 @@
         "port":"9000",
         "next_port":"9001",
         "ring_position":"1"
-    },
-    "server_2":{
-        "port":"9001",
-        "next_port":"9000",
-        "ring_position":"2"
     }
 }

@@ -29,23 +29,23 @@ public class Server {
 
     static HashMap<String, Integer> timeout = new HashMap<String, Integer>();
     static List<HostData> hostList = new ArrayList<>();
-    // static List<BucketResource> resouseList = new ArrayList<>();
     static IDHTBucket<BucketResource> bucket;
 
     public static void main(String[] args) throws IOException {
+        port = 9000;
+        next_sp = 9001;
+        int ring_size = 1;
+        int ring_position = 1;
+        
+        
+        
         // port = Integer.parseInt(args[0]);
-        port = 9001;
-
-        socket = new Socket(port);
-        // next_sp = Integer.parseInt(args[1]);
-        next_sp = 9000;
-
         // int ring_position = Integer.parseInt(args[2]);
-        int ring_position = 2;
-
         // int ring_size = Integer.parseInt(args[3]);
-        int ring_size = 2;
-
+        // next_sp = Integer.parseInt(args[1]);
+        
+        
+        socket = new Socket(port);
         System.out.println("SETUP SERVER AT PORT -> " + port);
         System.out.println("NEXT SERVER PORT -> " + next_sp);
 
@@ -60,7 +60,7 @@ public class Server {
                 int port = socketPayload.getPort();
                 String hostName = vars[1];
 
-                System.out.println(String.join(" ", vars));
+                System.out.println(String.join(" ", vars) + "\n");
 
                 if (vars[0].equals("create") && vars.length > 1) {
                     HostData hostData = new HostData(address, hostName, port);
@@ -93,7 +93,7 @@ public class Server {
                 }
                 if (vars[0].equals("register") && vars.length > 1) {
 
-                    String hash = vars[2];
+                    String hash = vars[1];
 
                     InetAddress host = InetAddress.getByName("localhost");
 
@@ -110,7 +110,7 @@ public class Server {
 
                         System.out.println("DATA STORED BY RING.");
 
-                        String nextPeerResource = "register_ring " + port + " " + vars[2] + " " + Server.port;
+                        String nextPeerResource = "register_ring " + hash + " " + port + " " + Server.port;
                         
                         socket.sendPacket(nextPeerResource, host, next_sp);
 
@@ -120,9 +120,9 @@ public class Server {
                 if (vars[0].equals("register_ring") && vars.length > 1) {
                     System.out.println("REGISTER_RING PROCEDURE.");
 
-                    int clientPort = Integer.parseInt(vars[1]);
+                    int clientPort = Integer.parseInt(vars[2]);
 
-                    String hash = vars[2];
+                    String hash = vars[1];
 
                     BucketResource bResource = new BucketResource(hash, clientPort);
 
@@ -152,8 +152,8 @@ public class Server {
                         System.out.println("RECOVERED LIST. SENDING TO REQUESTER");
 
                         for (String responseEntry : oldList.split(";")) {
-                            socket.sendPacket(responseEntry, address, Integer.parseInt(peerPort) - 101);
-                        }
+                            socket.sendPacket(responseEntry, address, Integer.parseInt(peerPort));
+                        }   
                     } else {
 
                         ICommand<String> command = new ListResourseCommand(Server.bucket);
@@ -161,6 +161,8 @@ public class Server {
                         String response = command.run();
 
                         String newList = response + oldList;
+
+                        System.out.println();
 
                         response = "list_ring " + newList + " " + peerPort + " " + superPeerPort;
                         socket.sendPacket(response, address, next_sp);

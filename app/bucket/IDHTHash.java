@@ -1,10 +1,12 @@
 package app.bucket;
 
+import java.math.BigInteger;
+
 public abstract class IDHTHash {
     
-    Long MAX_SIZE;
-    Long MIN_SIZE;
-    static Long max_hashes;
+    BigInteger MAX_SIZE;
+    BigInteger MIN_SIZE;
+    static BigInteger max_hashes;
 
     public abstract boolean containsHash(String hash);
 

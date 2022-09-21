@@ -14,9 +14,11 @@ import app.command.DecreaseHeartBeat;
 import app.command.HeartBeatCommand;
 import app.command.ICommand;
 import app.command.ListCommand;
+import app.command.ListResourseCommand;
 import app.command.RegisterCommand;
 import app.socket.Socket;
 import app.socket.Socket.SocketPayload;
+import app.bucket.BucketResource;
 
 public class Server {
     static Socket socket;
@@ -25,26 +27,27 @@ public class Server {
 
     static HashMap<String, Integer> timeout = new HashMap<String, Integer>();
     static List<HostData> hostList = new ArrayList<>();
-    static IDHTBucket<String> bucket;
+    // static List<BucketResource> resouseList = new ArrayList<>();
+    static IDHTBucket<BucketResource> bucket;
 
     public static void main(String[] args) throws IOException {
-        // port = Integer.parseInt(args[0]);
-        port = 9001;
+        port = Integer.parseInt(args[0]);
+        // port = 9000;
 
         socket = new Socket(port);
-        // next_sp = Integer.parseInt(args[1]);
-        next_sp = 9000;
+        next_sp = Integer.parseInt(args[1]);
+        // next_sp = 9001;
 
-        // int ring_position = Integer.parseInt(args[2]);
-        int ring_position = 2;
+        int ring_position = Integer.parseInt(args[2]);
+        // int ring_position = 1;
 
-        // int ring_size = Integer.parseInt(args[3]);
-        int ring_size = 2;
+        int ring_size = Integer.parseInt(args[3]);
+        // int ring_size = 2;
 
         System.out.println("SETUP SERVER AT PORT -> " + port);
         System.out.println("NEXT SERVER PORT -> " + next_sp);
 
-        bucket = new DHTBucket<String>(ring_size, ring_position);
+        bucket = new DHTBucket<BucketResource>(ring_size, ring_position);
 
         while (true) {
             try {
@@ -54,7 +57,7 @@ public class Server {
                 InetAddress address = socketPayload.getAddress();
                 int port = socketPayload.getPort();
                 String hostName = vars[1];
-                
+
                 System.out.println(String.join(" ", vars));
 
                 if (vars[0].equals("create") && vars.length > 1) {
@@ -74,12 +77,18 @@ public class Server {
                 }
                 if (vars[0].equals("list") && vars.length > 1) {
 
-                    ICommand<String> command = new ListCommand(hostList);
-                    String[] response = command.run().split("\r?\n|\r");
+                    // tu precisa
+                    // pegar a lista atual
+                        ICommand<String> command = new ListResourseCommand(Server.bucket);
 
-                    for (String responseEntry : response) {
-                        socket.sendPacket(responseEntry, address, port);
-                    }
+                        String response = command.run();
+                        // montar a request com <list_ring>
+                        String request = "list_ring " + response + " " + port + " " + Server.port;
+                   
+                    
+                    // mandar pro próximo
+                        socket.sendPacket(request, address, next_sp);
+                    
                 }
                 if (vars[0].equals("register") && vars.length > 1) {
 
@@ -87,22 +96,78 @@ public class Server {
 
                     InetAddress host = InetAddress.getByName("localhost");
 
-                    ICommand<Boolean> command = new RegisterCommand(bucket, hash, "DUMB DATA");
+                    BucketResource bResource = new BucketResource(hash, port);
+
+                    ICommand<Boolean> command = new RegisterCommand(bucket, bResource);
 
                     boolean response = command.run();
-                    if(response){
+                    if (response) {
+
                         System.out.println("DATA STORED.");
-                        
+
+                    } else {
+
+                        System.out.println("DATA STORED BY RING.");
+
+                        String nextPeerResource = "register_ring " + port + " " + vars[2] + " " + Server.port;
+
+                        socket.sendPacket(nextPeerResource, host, next_sp);
 
                     }
-                    else{
-                        // String response2 = String.join(" ", vars);
-                        
+
+                }
+                if (vars[0].equals("register_ring") && vars.length > 1) {
+                    System.out.println("REGISTER_RING PROCEDURE.");
+
+                    int clientPort = Integer.parseInt(vars[1]);
+
+                    String hash = vars[2];
+
+                    BucketResource bResource = new BucketResource(hash, clientPort);
+
+                    ICommand<Boolean> command = new RegisterCommand(bucket, bResource);
+
+                    boolean response = command.run();
+
+                    InetAddress host = InetAddress.getByName("localhost");
+                    if (response) {
+
+                        System.out.println("DATA STORED BY RING.");
+
+                    } else {
+                        System.out.println("REGISTER RING SENDING PACKET.");
                         socket.sendPacket(String.join(" ", vars), host, next_sp);
                     }
 
                 }
-                // 9223372036854775805
+                if (vars[0].equals("list_ring") && vars.length > 1) {
+
+                    // <list_ring> <lista_anterior> <porta_peer> <porta_servidor>
+
+                    String oldList = vars[1];
+                    String peerPort = vars[2];
+                    String superPeerPort = vars[3];
+
+                    if (Integer.parseInt(superPeerPort) == Server.port) { // se voltou pro inicio
+                        System.out.println("Reached end of ring");
+                        for (String responseEntry : oldList.split(";")) {
+                            socket.sendPacket(responseEntry, address, Integer.parseInt(peerPort));
+                        }
+
+                    } else {
+
+                        ICommand<String> command = new ListResourseCommand(Server.bucket);
+
+                        String response = command.run();
+
+                        String newList = response + oldList;
+
+                        response = "list_ring " + newList + " " + peerPort + " " + superPeerPort;
+                        socket.sendPacket(response, address, next_sp);
+
+                    }
+
+                }
             } catch (Exception e) {
                 ICommand<Void> command = new DecreaseHeartBeat(timeout, hostList);
                 command.run();

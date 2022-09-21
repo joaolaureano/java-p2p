@@ -1,5 +1,7 @@
 package app.bucket;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class DHTBucket<T> extends IDHTBucket<T> {
 
@@ -32,4 +34,11 @@ public class DHTBucket<T> extends IDHTBucket<T> {
         
         return this.hashOperator.getInterval();
     }
+
+    @Override
+    public List<T> toList() {
+        
+        return new ArrayList<>(this.storage.values());
+    }
+
 }

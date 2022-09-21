@@ -1,23 +1,22 @@
 package app.command;
 
 import app.bucket.IDHTBucket;
+import app.bucket.BucketResource;
 
 public class RegisterCommand implements ICommand<Boolean>{
-    IDHTBucket<String> bucket;
-    String hash;
-    String data;
+    IDHTBucket<BucketResource> bucket;
+    BucketResource bResource;
 
-    public RegisterCommand(IDHTBucket<String> bucket, String hash, String data){
+    public RegisterCommand(IDHTBucket<BucketResource> bucket, BucketResource bResource){
         
         this.bucket = bucket;
-        this.hash = hash;
-        this.data = data;
+        this.bResource = bResource;
 
     }
 
     public Boolean run(){
 
-        boolean result = this.bucket.setIfPossible(hash, data);
+        boolean result = this.bucket.setIfPossible(bResource.getHash(), bResource);
         System.out.println(this.bucket);
         return result;
 

@@ -1,6 +1,7 @@
 package app.peer;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import app.resource_manager.ResourceManager;
 import app.socket.Socket;
@@ -16,8 +17,8 @@ public class Peer {
 		} else {
 			System.out.println(Integer.parseInt(args[2]));
 			Socket newSocket = new Socket(Integer.parseInt(args[2]));
-			ResourceManager resourceManager = new ResourceManager(args[0]);
-			System.out.println("Resouce is " + args[0]);
+			ResourceManager resourceManager = new ResourceManager(args[0] + "_" +UUID.randomUUID().toString());
+			// System.out.println("Resouce is " + args[0]);
 			new PeerThread(args, newSocket, resourceManager).start();
 			new PeerClient(args, newSocket, resourceManager).start();
 			new PeerHeartbeat(args).start();

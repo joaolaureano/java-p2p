@@ -34,10 +34,27 @@ public class PeerThread extends Thread {
 				if (vars[0].equals("resource") && vars.length > 1) {
 					String hash = vars[1];
 
-					if (this.resourceManager.sameHash(hash))
-						System.out.println("I HAVE THIS CONTENT! " + this.resourceManager.getContent());
-					else
-						System.out.println("I DO NOT HAVE THIS CONTENT.");
+					if (this.resourceManager.sameHash(hash)) {
+						String succesMessage = "I HAVE THIS CONTENT!";
+
+						System.out.println(succesMessage);
+						addr = socketPayload.getAddress();
+						int requesterPort = socketPayload.getPort();
+						
+						socket.sendPacket(succesMessage, addr, requesterPort);
+						socket.sendPacket(this.resourceManager.getContent(), addr, requesterPort);
+					} else{
+						String failureMessage = "I DO NOT HAVE THIS CONTENT...";
+						
+						System.out.println(failureMessage);
+
+						addr = socketPayload.getAddress();
+						int requesterPort = socketPayload.getPort();
+
+						socket.sendPacket(failureMessage, addr, requesterPort);
+
+
+						}
 				}
 
 			} catch (Exception e) {

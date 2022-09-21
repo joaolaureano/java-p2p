@@ -32,17 +32,17 @@ public class Server {
     static IDHTBucket<BucketResource> bucket;
 
     public static void main(String[] args) throws IOException {
-        port = 9000;
-        next_sp = 9001;
-        int ring_size = 1;
-        int ring_position = 1;
+        // port = 9001;
+        // next_sp = 9000;
+        // int ring_size = 2;
+        // int ring_position =2;
         
         
         
-        // port = Integer.parseInt(args[0]);
-        // int ring_position = Integer.parseInt(args[2]);
-        // int ring_size = Integer.parseInt(args[3]);
-        // next_sp = Integer.parseInt(args[1]);
+        port = Integer.parseInt(args[0]);
+        int ring_position = Integer.parseInt(args[2]);
+        int ring_size = Integer.parseInt(args[3]);
+        next_sp = Integer.parseInt(args[1]);
         
         
         socket = new Socket(port);
@@ -60,7 +60,7 @@ public class Server {
                 int port = socketPayload.getPort();
                 String hostName = vars[1];
 
-                System.out.println(String.join(" ", vars) + "\n");
+                // System.out.println(String.join(" ", vars) + "\n");
 
                 if (vars[0].equals("create") && vars.length > 1) {
                     HostData hostData = new HostData(address, hostName, port);
@@ -149,11 +149,18 @@ public class Server {
                     String superPeerPort = vars[vars.length - 1];
 
                     if (Integer.parseInt(superPeerPort) == Server.port) { // se voltou pro inicio
-                        System.out.println("RECOVERED LIST. SENDING TO REQUESTER");
-
-                        for (String responseEntry : oldList.split(";")) {
-                            socket.sendPacket(responseEntry, address, Integer.parseInt(peerPort));
+                        if(!oldList.isEmpty()){
+                            System.out.println("RECOVERED LIST. SENDING TO REQUESTER");
+                            socket.sendPacket("CONTENT_HASH-PEER_PORT", address, Integer.parseInt(peerPort));
+                            for (String responseEntry : oldList.split(";")) {
+                                socket.sendPacket(responseEntry, address, Integer.parseInt(peerPort));
+                            }
                         }   
+                        else{
+                            String message = "NO RESOURCE FOUND";
+
+                            socket.sendPacket(message, address, Integer.parseInt(peerPort));
+                        }
                     } else {
 
                         ICommand<String> command = new ListResourseCommand(Server.bucket);

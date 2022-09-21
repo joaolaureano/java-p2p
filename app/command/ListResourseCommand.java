@@ -13,7 +13,7 @@ public class ListResourseCommand implements ICommand<String> {
     public String run(){
         String content = "";
         for(BucketResource name : resouseList.toList())
-            content += name.getHash() + " - " + name.getPeerPort() + ";";
+            content += name.getHash() + "-" + name.getPeerPort() + ";";
         return content;
     }
 }

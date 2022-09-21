@@ -1,0 +1,2 @@
+register joao FFFFFFFF localhost 9000
+register joao 4782DACE9D8FFFFF localhost 9000

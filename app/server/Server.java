@@ -5,6 +5,8 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import app.bucket.DHTBucket;
 import app.bucket.DHTHashMd5;
@@ -31,18 +33,18 @@ public class Server {
     static IDHTBucket<BucketResource> bucket;
 
     public static void main(String[] args) throws IOException {
-        port = Integer.parseInt(args[0]);
-        // port = 9000;
+        // port = Integer.parseInt(args[0]);
+        port = 9001;
 
         socket = new Socket(port);
-        next_sp = Integer.parseInt(args[1]);
-        // next_sp = 9001;
+        // next_sp = Integer.parseInt(args[1]);
+        next_sp = 9000;
 
-        int ring_position = Integer.parseInt(args[2]);
-        // int ring_position = 1;
+        // int ring_position = Integer.parseInt(args[2]);
+        int ring_position = 2;
 
-        int ring_size = Integer.parseInt(args[3]);
-        // int ring_size = 2;
+        // int ring_size = Integer.parseInt(args[3]);
+        int ring_size = 2;
 
         System.out.println("SETUP SERVER AT PORT -> " + port);
         System.out.println("NEXT SERVER PORT -> " + next_sp);
@@ -79,16 +81,15 @@ public class Server {
 
                     // tu precisa
                     // pegar a lista atual
-                        ICommand<String> command = new ListResourseCommand(Server.bucket);
+                    ICommand<String> command = new ListResourseCommand(Server.bucket);
 
-                        String response = command.run();
-                        // montar a request com <list_ring>
-                        String request = "list_ring " + response + " " + port + " " + Server.port;
-                   
-                    
+                    String response = command.run();
+                    // montar a request com <list_ring>
+                    String request = "list_ring " + response + " " + port + " " + Server.port;
+
                     // mandar pro próximo
-                        socket.sendPacket(request, address, next_sp);
-                    
+                    socket.sendPacket(request, address, next_sp);
+
                 }
                 if (vars[0].equals("register") && vars.length > 1) {
 
@@ -110,7 +111,7 @@ public class Server {
                         System.out.println("DATA STORED BY RING.");
 
                         String nextPeerResource = "register_ring " + port + " " + vars[2] + " " + Server.port;
-
+                        
                         socket.sendPacket(nextPeerResource, host, next_sp);
 
                     }
@@ -142,18 +143,17 @@ public class Server {
                 }
                 if (vars[0].equals("list_ring") && vars.length > 1) {
 
-                    // <list_ring> <lista_anterior> <porta_peer> <porta_servidor>
 
                     String oldList = vars[1];
-                    String peerPort = vars[2];
-                    String superPeerPort = vars[3];
+                    String peerPort = vars[vars.length - 2];
+                    String superPeerPort = vars[vars.length - 1];
 
                     if (Integer.parseInt(superPeerPort) == Server.port) { // se voltou pro inicio
-                        System.out.println("Reached end of ring");
-                        for (String responseEntry : oldList.split(";")) {
-                            socket.sendPacket(responseEntry, address, Integer.parseInt(peerPort));
-                        }
+                        System.out.println("RECOVERED LIST. SENDING TO REQUESTER");
 
+                        for (String responseEntry : oldList.split(";")) {
+                            socket.sendPacket(responseEntry, address, Integer.parseInt(peerPort) - 101);
+                        }
                     } else {
 
                         ICommand<String> command = new ListResourseCommand(Server.bucket);
@@ -166,7 +166,6 @@ public class Server {
                         socket.sendPacket(response, address, next_sp);
 
                     }
-
                 }
             } catch (Exception e) {
                 ICommand<Void> command = new DecreaseHeartBeat(timeout, hostList);

@@ -17,7 +17,6 @@ public class RegisterCommand implements ICommand<Boolean>{
     public Boolean run(){
 
         boolean result = this.bucket.setIfPossible(bResource.getHash(), bResource);
-        System.out.println(this.bucket);
         return result;
 
     }

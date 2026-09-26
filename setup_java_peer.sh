@@ -1,1 +1,0 @@
-java app/peer/Peer localhost "create $1" $2 $3

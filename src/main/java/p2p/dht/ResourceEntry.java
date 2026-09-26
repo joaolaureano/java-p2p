@@ -1,15 +1,21 @@
 package p2p.dht;
 
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
- * One resource announced to the DHT: the hash of its content and the peer that holds it.
+ * One file announced to the DHT and the peer that holds it.
  *
- * @param hash lowercase 32 character MD5 hash
- * @param host host where the resource can be fetched
- * @param port port where the resource can be fetched
+ * @param hash lowercase 32 character MD5 of the file content
+ * @param host host where the file can be fetched
+ * @param port port where the file can be fetched
+ * @param size file size in bytes
+ * @param name file name chosen by the sharing peer
  */
-public record ResourceEntry(String hash, String host, int port) {
+public record ResourceEntry(String hash, String host, int port, long size, String name) {
 
     public ResourceEntry {
         if (hash == null) {
@@ -26,40 +32,60 @@ public record ResourceEntry(String hash, String host, int port) {
         if (port < 1 || port > 65535) {
             throw new IllegalArgumentException("port must be between 1 and 65535 but was " + port);
         }
+        if (size < 0) {
+            throw new IllegalArgumentException("size must not be negative but was " + size);
+        }
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("name must not be blank");
+        }
     }
 
-    /** @return the wire representation: {@code hash@host:port}. */
+    /** @return the wire form {@code hash,size,host,port,url-encoded-name} (one token, no spaces). */
     public String toWire() {
-        return hash + "@" + host + ":" + port;
+        return hash + "," + size + "," + host + "," + port + "," + encodeName(name);
     }
 
     /**
-     * Parses the wire representation produced by {@link #toWire()}.
+     * Parses the wire form produced by {@link #toWire()}.
      *
-     * @throws IllegalArgumentException if {@code wire} is null, blank or malformed
+     * @throws IllegalArgumentException if {@code wire} is null, blank, malformed or holds invalid values
      */
     public static ResourceEntry fromWire(String wire) {
         if (wire == null || wire.isBlank()) {
             throw new IllegalArgumentException("Resource wire form must not be null or blank");
         }
-
-        int at = wire.indexOf('@');
-        int colon = wire.lastIndexOf(':');
-        if (at <= 0 || colon <= at + 1 || colon == wire.length() - 1) {
-            throw new IllegalArgumentException("Malformed resource wire form: '" + wire + "'");
+        String[] parts = wire.split(",", -1);
+        if (parts.length != 5) {
+            throw new IllegalArgumentException("Malformed resource wire form (expected 5 parts): '" + wire + "'");
         }
-
-        String hash = wire.substring(0, at);
-        String host = wire.substring(at + 1, colon);
-        String portText = wire.substring(colon + 1);
-
+        long size;
         int port;
         try {
-            port = Integer.parseInt(portText);
+            size = Long.parseLong(parts[1].trim());
+            port = Integer.parseInt(parts[3].trim());
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid port in resource wire form: '" + wire + "'", e);
+            throw new IllegalArgumentException("Invalid number in resource wire form: '" + wire + "'", e);
         }
+        return new ResourceEntry(parts[0], parts[2], port, size, decodeName(parts[4]));
+    }
 
-        return new ResourceEntry(hash, host, port);
+    /** URL-encodes a file name (UTF-8) so it can travel as one token of a protocol line. */
+    public static String encodeName(String name) {
+        Objects.requireNonNull(name, "name must not be null");
+        return URLEncoder.encode(name, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Decodes a name produced by {@link #encodeName(String)}.
+     *
+     * @throws IllegalArgumentException if the encoded name is malformed
+     */
+    public static String decodeName(String encoded) {
+        Objects.requireNonNull(encoded, "encoded must not be null");
+        try {
+            return URLDecoder.decode(encoded, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Malformed encoded name: '" + encoded + "'", e);
+        }
     }
 }

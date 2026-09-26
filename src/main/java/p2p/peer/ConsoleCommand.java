@@ -1,6 +1,7 @@
 package p2p.peer;
 
 import p2p.dht.Md5;
+import p2p.dht.ResourceEntry;
 import p2p.network.Message;
 import p2p.network.MessageType;
 
@@ -10,29 +11,30 @@ import java.util.Locale;
  * A single command typed on the peer console, translated into an optional network message plus the
  * host/port it must be sent to. Parsing is pure: it never touches the network.
  */
-public record ConsoleCommand(Kind kind, Message message, String targetHost, int targetPort) {
+public record ConsoleCommand(Kind kind, Message message, String targetHost, int targetPort, String argument) {
 
-    public enum Kind { SEND, HELP, INFO, QUIT, EMPTY }
+    public enum Kind { SEND, SHARE, FILES, REGISTER_ALL, GET, HELP, INFO, QUIT, EMPTY }
 
     /**
      * Parses one console line.
      *
      * @throws IllegalArgumentException for unknown commands or wrong arguments (never any other exception)
      */
-    public static ConsoleCommand parse(String line, PeerConfig config, SharedResource resource) {
+    public static ConsoleCommand parse(String line, PeerConfig config) {
         if (line == null || line.isBlank()) {
             return local(Kind.EMPTY);
         }
 
-        String[] tokens = line.trim().split("\\s+");
+        String trimmed = line.trim();
+        String[] tokens = trimmed.split("\\s+");
         String command = tokens[0].toLowerCase(Locale.ROOT);
 
         return switch (command) {
-            case "register" -> sendToServerOrTarget(tokens, Message.of(MessageType.REGISTER, resource.hash()),
-                    config, "register [server_host server_port]");
-            case "list" -> sendToServerOrTarget(tokens, Message.of(MessageType.LIST),
-                    config, "list [server_host server_port]");
-            case "resource" -> parseResource(tokens);
+            case "share" -> parseShare(trimmed);
+            case "files" -> noArguments(tokens, Kind.FILES);
+            case "register" -> parseRegister(tokens, config);
+            case "list" -> sendToServerOrTarget(tokens, Message.of(MessageType.LIST), config, "list [host port]");
+            case "get" -> parseGet(tokens);
             case "info" -> noArguments(tokens, Kind.INFO);
             case "help" -> noArguments(tokens, Kind.HELP);
             case "quit", "exit" -> noArguments(tokens, Kind.QUIT);
@@ -43,37 +45,61 @@ public record ConsoleCommand(Kind kind, Message message, String targetHost, int 
     public static String help() {
         return """
                 Available commands:
-                  register [server_host server_port]        register this peer's resource in the ring
-                  list [server_host server_port]            list every resource stored in the ring
-                  resource <hash> <peer_host> <peer_port>   ask a peer for a resource
-                  info                                      show this peer's nickname, port and resource
-                  help                                      show this help
-                  quit | exit                               leave the network""";
+                  share <path>              share one file (the path may contain spaces) and register it
+                  files                     list the files this peer shares
+                  register [host port]      register every shared file (default: super-node)
+                  list [host port]          list every file stored in the ring
+                  get <hash> [host port]    download a file by hash
+                  info                      show this peer's nickname, port and directories
+                  help                      show this help
+                  quit | exit               leave the network""";
+    }
+
+    private static ConsoleCommand parseShare(String line) {
+        int space = firstWhitespace(line);
+        if (space < 0) {
+            throw new IllegalArgumentException("Usage: share <path>");
+        }
+        String argument = line.substring(space).trim();
+        if (argument.isEmpty()) {
+            throw new IllegalArgumentException("Usage: share <path>");
+        }
+        return new ConsoleCommand(Kind.SHARE, null, null, 0, argument);
+    }
+
+    private static ConsoleCommand parseRegister(String[] tokens, PeerConfig config) {
+        if (tokens.length == 1) {
+            return new ConsoleCommand(Kind.REGISTER_ALL, null, config.serverHost(), config.serverPort(), null);
+        }
+        if (tokens.length == 3) {
+            return new ConsoleCommand(Kind.REGISTER_ALL, null, tokens[1], parsePort(tokens[2]), null);
+        }
+        throw new IllegalArgumentException("Usage: register [host port]");
+    }
+
+    private static ConsoleCommand parseGet(String[] tokens) {
+        if (tokens.length != 2 && tokens.length != 4) {
+            throw new IllegalArgumentException("Usage: get <hash> [host port]");
+        }
+        String hash = tokens[1].toLowerCase(Locale.ROOT);
+        if (!Md5.isValidHex(hash)) {
+            throw new IllegalArgumentException("Invalid hash (expected 32 hex characters): " + tokens[1]);
+        }
+        if (tokens.length == 2) {
+            return new ConsoleCommand(Kind.GET, null, null, 0, hash);
+        }
+        return new ConsoleCommand(Kind.GET, null, tokens[2], parsePort(tokens[3]), hash);
     }
 
     private static ConsoleCommand sendToServerOrTarget(String[] tokens, Message message, PeerConfig config,
                                                        String usage) {
         if (tokens.length == 1) {
-            return new ConsoleCommand(Kind.SEND, message, config.serverHost(), config.serverPort());
+            return new ConsoleCommand(Kind.SEND, message, config.serverHost(), config.serverPort(), null);
         }
         if (tokens.length == 3) {
-            return new ConsoleCommand(Kind.SEND, message, tokens[1], parsePort(tokens[2]));
+            return new ConsoleCommand(Kind.SEND, message, tokens[1], parsePort(tokens[2]), null);
         }
         throw new IllegalArgumentException("Usage: " + usage);
-    }
-
-    private static ConsoleCommand parseResource(String[] tokens) {
-        if (tokens.length != 4) {
-            throw new IllegalArgumentException("Usage: resource <hash> <peer_host> <peer_port>");
-        }
-        String hash = tokens[1];
-        if (!Md5.isValidHex(hash)) {
-            throw new IllegalArgumentException("Invalid hash (expected 32 hex characters): " + hash);
-        }
-        return new ConsoleCommand(Kind.SEND,
-                Message.of(MessageType.RESOURCE, hash.toLowerCase(Locale.ROOT)),
-                tokens[2],
-                parsePort(tokens[3]));
     }
 
     private static ConsoleCommand noArguments(String[] tokens, Kind kind) {
@@ -84,7 +110,16 @@ public record ConsoleCommand(Kind kind, Message message, String targetHost, int 
     }
 
     private static ConsoleCommand local(Kind kind) {
-        return new ConsoleCommand(kind, null, null, 0);
+        return new ConsoleCommand(kind, null, null, 0, null);
+    }
+
+    private static int firstWhitespace(String value) {
+        for (int i = 0; i < value.length(); i++) {
+            if (Character.isWhitespace(value.charAt(i))) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private static int parsePort(String value) {
@@ -98,5 +133,11 @@ public record ConsoleCommand(Kind kind, Message message, String targetHost, int 
             throw new IllegalArgumentException("Port out of range (1-65535): " + value);
         }
         return port;
+    }
+
+    /** A convenience factory used by {@link PeerConsoleTest}-friendly code; kept out of the record API. */
+    public static Message registerMessage(SharedFile file) {
+        return Message.of(MessageType.REGISTER, file.hash(), Long.toString(file.size()),
+                ResourceEntry.encodeName(file.name()));
     }
 }

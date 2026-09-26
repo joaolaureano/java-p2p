@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Starts an interactive peer attached to a super-node.
+# Files in peers/<nickname>/shared are shared; downloads go to peers/<nickname>/downloads.
 # Usage: scripts/start-peer.sh <nickname> <peer_port> [server_port=9000] [server_host=127.0.0.1]
 set -euo pipefail
 
@@ -15,4 +16,8 @@ if [ ! -d target/classes ]; then
     mvn -q compile
 fi
 
-exec java -cp target/classes p2p.peer.PeerNode "${4:-127.0.0.1}" "${3:-9000}" "$1" "$2"
+PEER_DIR="peers/$1"
+mkdir -p "$PEER_DIR/shared" "$PEER_DIR/downloads"
+
+exec java -cp target/classes p2p.peer.PeerNode "${4:-127.0.0.1}" "${3:-9000}" "$1" "$2" \
+    "$PEER_DIR/shared" "$PEER_DIR/downloads"

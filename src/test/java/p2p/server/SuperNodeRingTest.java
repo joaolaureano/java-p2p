@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import p2p.dht.ResourceEntry;
 import p2p.network.Packet;
 import p2p.network.UdpEndpoint;
 
@@ -65,7 +67,7 @@ class SuperNodeRingTest {
     private static String receive(UdpEndpoint client) {
         Optional<Packet> packet = client.receive(RECEIVE_TIMEOUT);
         assertTrue(packet.isPresent(), "expected a UDP packet within " + RECEIVE_TIMEOUT);
-        return packet.get().content();
+        return new String(packet.get().data(), StandardCharsets.UTF_8);
     }
 
     @Test
@@ -74,7 +76,7 @@ class SuperNodeRingTest {
         UdpEndpoint client = newClient();
 
         for (String hash : List.of(HASH_NODE_1, HASH_NODE_2, HASH_NODE_3)) {
-            client.send("register " + hash, localhost(), ring[0].port());
+            client.sendText("register " + hash + " 10 file.bin", localhost(), ring[0].port());
             String reply = receive(client);
             assertTrue(reply.startsWith("REGISTERED " + hash), "reply was: " + reply);
         }
@@ -87,15 +89,20 @@ class SuperNodeRingTest {
         assertTrue(ring[2].table().get(HASH_NODE_3).isPresent());
 
         // Ask a different node than the one used to register: the answer must reach the client.
-        client.send("list", localhost(), ring[1].port());
+        client.sendText("list", localhost(), ring[1].port());
         assertEquals("RESOURCES 3", receive(client));
 
-        String expectedOwner = "@" + LOCALHOST + ":" + client.localPort();
-        List<String> entries = List.of(receive(client), receive(client), receive(client));
-        for (String entry : entries) {
-            assertTrue(entry.endsWith(expectedOwner), "entry was: " + entry);
+        List<ResourceEntry> entries = List.of(
+                ResourceEntry.fromWire(receive(client)),
+                ResourceEntry.fromWire(receive(client)),
+                ResourceEntry.fromWire(receive(client)));
+        for (ResourceEntry entry : entries) {
+            assertEquals(LOCALHOST, entry.host());
+            assertEquals(client.localPort(), entry.port());
+            assertEquals(10L, entry.size());
+            assertEquals("file.bin", entry.name());
         }
-        assertEquals(3, entries.stream().distinct().count());
+        assertEquals(3, entries.stream().map(ResourceEntry::hash).distinct().count());
     }
 
     @Test
@@ -103,7 +110,7 @@ class SuperNodeRingTest {
         SuperNode[] ring = startRing();
         UdpEndpoint client = newClient();
 
-        client.send("list", localhost(), ring[0].port());
+        client.sendText("list", localhost(), ring[0].port());
         assertEquals("NO RESOURCE FOUND", receive(client));
     }
 
@@ -112,12 +119,12 @@ class SuperNodeRingTest {
         SuperNode[] ring = startRing();
         UdpEndpoint client = newClient();
 
-        client.send("", localhost(), ring[0].port());
-        client.send("garbage", localhost(), ring[0].port());
-        client.send("register", localhost(), ring[0].port());
-        client.send("register_ring x y notaport z 1", localhost(), ring[0].port());
+        client.sendText("", localhost(), ring[0].port());
+        client.sendText("garbage", localhost(), ring[0].port());
+        client.sendText("register", localhost(), ring[0].port());
+        client.sendText("register_ring x y notaport z 1", localhost(), ring[0].port());
 
-        client.send("create alice", localhost(), ring[0].port());
+        client.sendText("create alice", localhost(), ring[0].port());
         assertEquals("OK", receive(client));
     }
 
@@ -126,8 +133,18 @@ class SuperNodeRingTest {
         SuperNode[] ring = startRing();
         UdpEndpoint client = newClient();
 
-        client.send("register not-a-hash", localhost(), ring[0].port());
+        client.sendText("register not-a-hash 10 file.bin", localhost(), ring[0].port());
         assertEquals("ERROR invalid hash: not-a-hash", receive(client));
+    }
+
+    @Test
+    void negativeSizeIsRejected() {
+        SuperNode[] ring = startRing();
+        UdpEndpoint client = newClient();
+
+        client.sendText("register " + HASH_NODE_1 + " -1 x", localhost(), ring[0].port());
+        assertEquals("ERROR invalid size: -1", receive(client));
+        assertEquals(0, ring[0].table().size());
     }
 
     @Test
@@ -136,10 +153,10 @@ class SuperNodeRingTest {
         UdpEndpoint first = newClient();
         UdpEndpoint second = newClient();
 
-        first.send("create bob", localhost(), ring[0].port());
+        first.sendText("create bob", localhost(), ring[0].port());
         assertEquals("OK", receive(first));
 
-        second.send("create bob", localhost(), ring[0].port());
+        second.sendText("create bob", localhost(), ring[0].port());
         assertEquals("ERROR name already taken: bob", receive(second));
     }
 
@@ -151,7 +168,7 @@ class SuperNodeRingTest {
         ring[2].setNext(LOCALHOST, ring[0].port());
         UdpEndpoint client = newClient();
 
-        client.send("register " + HASH_NODE_2, localhost(), ring[0].port());
+        client.sendText("register " + HASH_NODE_2 + " 10 file.bin", localhost(), ring[0].port());
 
         String reply = receive(client);
         assertTrue(reply.startsWith("ERROR no node owns " + HASH_NODE_2), "reply was: " + reply);

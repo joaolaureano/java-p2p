@@ -56,7 +56,7 @@ public final class HeartbeatSender {
             return;
         }
         try {
-            endpoint.send(Message.of(MessageType.HEARTBEAT, nickname).format(), server, serverPort);
+            endpoint.send(Message.of(MessageType.HEARTBEAT, nickname), server, serverPort);
         } catch (RuntimeException e) {
             System.err.println("Heartbeat failed for " + nickname + ": " + e.getMessage());
         }

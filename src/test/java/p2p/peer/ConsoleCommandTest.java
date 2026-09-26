@@ -1,96 +1,126 @@
 package p2p.peer;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.Locale;
 import org.junit.jupiter.api.Test;
 import p2p.network.MessageType;
 
+import java.nio.file.Path;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 class ConsoleCommandTest {
 
-    private final SharedResource resource = new SharedResource("hello world");
-    private final PeerConfig config = new PeerConfig("127.0.0.1", 5000, "alice", 6000);
+    private static final PeerConfig CONFIG = new PeerConfig("127.0.0.1", 9000, "alice", 8080,
+            Path.of("shared"), Path.of("downloads"));
 
-    private ConsoleCommand parse(String line) {
-        return ConsoleCommand.parse(line, config, resource);
+    @Test
+    void shareKeepsSpacesInPath() {
+        ConsoleCommand command = ConsoleCommand.parse("share /tmp/my file.txt", CONFIG);
+        assertEquals(ConsoleCommand.Kind.SHARE, command.kind());
+        assertEquals("/tmp/my file.txt", command.argument());
     }
 
     @Test
-    void registerWithoutTargetGoesToOwnServer() {
-        ConsoleCommand command = parse("register");
+    void filesCommand() {
+        assertEquals(ConsoleCommand.Kind.FILES, ConsoleCommand.parse("files", CONFIG).kind());
+    }
 
-        assertEquals(ConsoleCommand.Kind.SEND, command.kind());
-        assertEquals(MessageType.REGISTER, command.message().type());
-        assertEquals(resource.hash(), command.message().arg(0));
+    @Test
+    void registerDefaultsToServer() {
+        ConsoleCommand command = ConsoleCommand.parse("register", CONFIG);
+        assertEquals(ConsoleCommand.Kind.REGISTER_ALL, command.kind());
         assertEquals("127.0.0.1", command.targetHost());
-        assertEquals(5000, command.targetPort());
+        assertEquals(9000, command.targetPort());
     }
 
     @Test
-    void registerWithExplicitTarget() {
-        ConsoleCommand command = parse("register 10.0.0.5 7001");
-
-        assertEquals(MessageType.REGISTER, command.message().type());
-        assertEquals("10.0.0.5", command.targetHost());
-        assertEquals(7001, command.targetPort());
+    void registerWithTarget() {
+        ConsoleCommand command = ConsoleCommand.parse("register example.org 1234", CONFIG);
+        assertEquals(ConsoleCommand.Kind.REGISTER_ALL, command.kind());
+        assertEquals("example.org", command.targetHost());
+        assertEquals(1234, command.targetPort());
     }
 
     @Test
-    void listWithAndWithoutTarget() {
-        ConsoleCommand own = parse("list");
-        assertEquals(MessageType.LIST, own.message().type());
-        assertEquals(5000, own.targetPort());
-
-        ConsoleCommand other = parse("list 10.0.0.5 7002");
-        assertEquals("10.0.0.5", other.targetHost());
-        assertEquals(7002, other.targetPort());
+    void listDefaultsToServer() {
+        ConsoleCommand command = ConsoleCommand.parse("list", CONFIG);
+        assertEquals(ConsoleCommand.Kind.SEND, command.kind());
+        assertEquals(MessageType.LIST, command.message().type());
+        assertEquals("127.0.0.1", command.targetHost());
+        assertEquals(9000, command.targetPort());
     }
 
     @Test
-    void resourceCommandNormalizesTheHash() {
-        String upper = resource.hash().toUpperCase(Locale.ROOT);
-        ConsoleCommand command = parse("resource " + upper + " 10.0.0.9 8000");
-
-        assertEquals(MessageType.RESOURCE, command.message().type());
-        assertEquals(resource.hash(), command.message().arg(0));
-        assertEquals("10.0.0.9", command.targetHost());
-        assertEquals(8000, command.targetPort());
+    void listWithTarget() {
+        ConsoleCommand command = ConsoleCommand.parse("list other.host 4321", CONFIG);
+        assertEquals(ConsoleCommand.Kind.SEND, command.kind());
+        assertEquals(MessageType.LIST, command.message().type());
+        assertEquals("other.host", command.targetHost());
+        assertEquals(4321, command.targetPort());
     }
 
     @Test
-    void localCommands() {
-        assertEquals(ConsoleCommand.Kind.INFO, parse("info").kind());
-        assertEquals(ConsoleCommand.Kind.HELP, parse("HELP").kind());
-        assertEquals(ConsoleCommand.Kind.QUIT, parse("quit").kind());
-        assertEquals(ConsoleCommand.Kind.QUIT, parse("exit").kind());
+    void getByHashOnly() {
+        String hash = "a".repeat(32);
+        ConsoleCommand command = ConsoleCommand.parse("get " + hash, CONFIG);
+        assertEquals(ConsoleCommand.Kind.GET, command.kind());
+        assertEquals(hash, command.argument());
+        assertNull(command.targetHost());
     }
 
     @Test
-    void blankLinesAreEmptyCommands() {
-        assertEquals(ConsoleCommand.Kind.EMPTY, parse(null).kind());
-        assertEquals(ConsoleCommand.Kind.EMPTY, parse("").kind());
-        assertEquals(ConsoleCommand.Kind.EMPTY, parse("   ").kind());
+    void getWithTarget() {
+        String hash = "b".repeat(32);
+        ConsoleCommand command = ConsoleCommand.parse("get " + hash + " host.example 4444", CONFIG);
+        assertEquals(ConsoleCommand.Kind.GET, command.kind());
+        assertEquals(hash, command.argument());
+        assertEquals("host.example", command.targetHost());
+        assertEquals(4444, command.targetPort());
     }
 
     @Test
-    void helpListsEveryCommand() {
-        String help = ConsoleCommand.help();
-        for (String command : new String[] {"register", "list", "resource", "info", "help", "quit"}) {
-            assertTrue(help.contains(command), "help is missing " + command);
-        }
+    void getHashIsLowercased() {
+        String upper = "A".repeat(32);
+        ConsoleCommand command = ConsoleCommand.parse("get " + upper, CONFIG);
+        assertEquals(upper.toLowerCase(java.util.Locale.ROOT), command.argument());
     }
 
     @Test
-    void badInputsThrowIllegalArgumentException() {
-        assertThrows(IllegalArgumentException.class, () -> parse("resource"));
-        assertThrows(IllegalArgumentException.class, () -> parse("resource zz 127.0.0.1 5000"));
-        assertThrows(IllegalArgumentException.class, () -> parse("resource " + resource.hash() + " host 0"));
-        assertThrows(IllegalArgumentException.class, () -> parse("list host notaport"));
-        assertThrows(IllegalArgumentException.class, () -> parse("list host"));
-        assertThrows(IllegalArgumentException.class, () -> parse("register host 99999"));
-        assertThrows(IllegalArgumentException.class, () -> parse("info extra"));
-        assertThrows(IllegalArgumentException.class, () -> parse("foo"));
+    void invalidHashesPortsAndArityThrow() {
+        assertThrows(IllegalArgumentException.class, () -> ConsoleCommand.parse("get nothex", CONFIG));
+        assertThrows(IllegalArgumentException.class, () -> ConsoleCommand.parse("get", CONFIG));
+        assertThrows(IllegalArgumentException.class,
+                () -> ConsoleCommand.parse("get " + "a".repeat(32) + " host", CONFIG));
+        assertThrows(IllegalArgumentException.class,
+                () -> ConsoleCommand.parse("get " + "a".repeat(32) + " host 0", CONFIG));
+        assertThrows(IllegalArgumentException.class,
+                () -> ConsoleCommand.parse("get " + "a".repeat(32) + " host 99999", CONFIG));
+        assertThrows(IllegalArgumentException.class, () -> ConsoleCommand.parse("register host 99999", CONFIG));
+        assertThrows(IllegalArgumentException.class, () -> ConsoleCommand.parse("register host", CONFIG));
+        assertThrows(IllegalArgumentException.class, () -> ConsoleCommand.parse("register a b c d", CONFIG));
+        assertThrows(IllegalArgumentException.class, () -> ConsoleCommand.parse("list a b c", CONFIG));
+        assertThrows(IllegalArgumentException.class, () -> ConsoleCommand.parse("help now", CONFIG));
+        assertThrows(IllegalArgumentException.class, () -> ConsoleCommand.parse("nope", CONFIG));
+        assertThrows(IllegalArgumentException.class, () -> ConsoleCommand.parse("share", CONFIG));
+    }
+
+    @Test
+    void blankIsEmpty() {
+        assertEquals(ConsoleCommand.Kind.EMPTY, ConsoleCommand.parse("", CONFIG).kind());
+        assertEquals(ConsoleCommand.Kind.EMPTY, ConsoleCommand.parse("   ", CONFIG).kind());
+        assertEquals(ConsoleCommand.Kind.EMPTY, ConsoleCommand.parse(null, CONFIG).kind());
+    }
+
+    @Test
+    void quitAndExit() {
+        assertEquals(ConsoleCommand.Kind.QUIT, ConsoleCommand.parse("quit", CONFIG).kind());
+        assertEquals(ConsoleCommand.Kind.QUIT, ConsoleCommand.parse("exit", CONFIG).kind());
+    }
+
+    @Test
+    void infoAndHelp() {
+        assertEquals(ConsoleCommand.Kind.INFO, ConsoleCommand.parse("info", CONFIG).kind());
+        assertEquals(ConsoleCommand.Kind.HELP, ConsoleCommand.parse("help", CONFIG).kind());
     }
 }

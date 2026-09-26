@@ -1,6 +1,10 @@
 package p2p.dht;
 
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
@@ -11,31 +15,36 @@ import java.util.Objects;
 public final class Md5 {
 
     private static final char[] HEX_DIGITS = "0123456789abcdef".toCharArray();
+    private static final int BUFFER_SIZE = 64 * 1024;
 
     private Md5() {
         // utility class
     }
 
+    /** @return the 32 character lowercase hexadecimal MD5 of {@code data}. */
+    public static String of(byte[] data) {
+        Objects.requireNonNull(data, "data must not be null");
+        MessageDigest digest = newDigest();
+        digest.update(data);
+        return toHex(digest.digest());
+    }
+
     /**
-     * Computes the MD5 hash of the UTF-8 encoding of {@code text}.
+     * Computes the MD5 of a file's contents, reading it in 64 KiB blocks.
      *
      * @return a 32 character lowercase hexadecimal string
+     * @throws IOException if the file cannot be read
      */
-    public static String hex(String text) {
-        Objects.requireNonNull(text, "text must not be null");
-        try {
-            MessageDigest digest = MessageDigest.getInstance("MD5");
-            byte[] bytes = digest.digest(text.getBytes(StandardCharsets.UTF_8));
-            char[] out = new char[bytes.length * 2];
-            for (int i = 0; i < bytes.length; i++) {
-                int value = bytes[i] & 0xFF;
-                out[i * 2] = HEX_DIGITS[value >>> 4];
-                out[i * 2 + 1] = HEX_DIGITS[value & 0x0F];
+    public static String ofFile(Path file) throws IOException {
+        Objects.requireNonNull(file, "file must not be null");
+        MessageDigest digest = newDigest();
+        try (InputStream in = new DigestInputStream(Files.newInputStream(file), digest)) {
+            byte[] buffer = new byte[BUFFER_SIZE];
+            while (in.read(buffer) != -1) {
+                // DigestInputStream updates the digest while reading
             }
-            return new String(out);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("MD5 is not available in this JVM", e);
         }
+        return toHex(digest.digest());
     }
 
     /** @return {@code true} when {@code s} is exactly 32 hexadecimal characters (either case). */
@@ -49,5 +58,23 @@ public final class Md5 {
             }
         }
         return true;
+    }
+
+    private static MessageDigest newDigest() {
+        try {
+            return MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("MD5 is not available in this JVM", e);
+        }
+    }
+
+    private static String toHex(byte[] bytes) {
+        char[] out = new char[bytes.length * 2];
+        for (int i = 0; i < bytes.length; i++) {
+            int value = bytes[i] & 0xFF;
+            out[i * 2] = HEX_DIGITS[value >>> 4];
+            out[i * 2 + 1] = HEX_DIGITS[value & 0x0F];
+        }
+        return new String(out);
     }
 }

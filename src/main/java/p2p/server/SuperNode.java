@@ -142,7 +142,7 @@ public class SuperNode implements AutoCloseable {
     private void handlePacket(Packet packet) {
         Message message;
         try {
-            message = Message.parse(packet.content());
+            message = Message.parse(packet.data());
         } catch (IllegalArgumentException e) {
             log("Ignoring malformed packet from " + hostPort(packet) + ": " + e.getMessage());
             return;
@@ -156,7 +156,8 @@ public class SuperNode implements AutoCloseable {
                 case REGISTER_RING -> handleRegisterRing(message);
                 case LIST -> handleList(packet);
                 case LIST_RING -> handleListRing(message);
-                case RESOURCE -> reply("ERROR unsupported on super-node", packet);
+                case META, META_OK, META_MISSING, CHUNK, CHUNK_DATA ->
+                        reply("ERROR unsupported on super-node", packet);
             }
         } catch (RuntimeException e) {
             log("Error handling " + message.type().keyword() + " from " + hostPort(packet) + ": " + e);
@@ -185,13 +186,16 @@ public class SuperNode implements AutoCloseable {
         }
     }
 
+    /** {@code register <hash> <size> <encoded_name>}: the sender becomes the owner of the file. */
     private void handleRegister(Packet packet, Message message) {
-        String rawHash = message.arg(0);
-        if (!Md5.isValidHex(rawHash)) {
-            reply("ERROR invalid hash: " + rawHash, packet);
+        ResourceEntry entry;
+        try {
+            entry = parseEntry(message.arg(0), message.arg(1), message.arg(2),
+                    packet.address().getHostAddress(), packet.port());
+        } catch (IllegalArgumentException e) {
+            reply("ERROR " + e.getMessage(), packet);
             return;
         }
-        ResourceEntry entry = new ResourceEntry(rawHash, packet.address().getHostAddress(), packet.port());
 
         if (table.storeIfOwned(entry)) {
             log("Stored " + entry.toWire());
@@ -199,23 +203,28 @@ public class SuperNode implements AutoCloseable {
         } else if (isNextSelf()) {
             reply("ERROR no node owns " + entry.hash(), packet);
         } else {
-            sendToNext(Message.of(MessageType.REGISTER_RING, entry.hash(), entry.host(),
-                    String.valueOf(entry.port()), config.host(), String.valueOf(selfPort)));
+            sendToNext(Message.of(MessageType.REGISTER_RING, entry.hash(), String.valueOf(entry.size()),
+                    message.arg(2), entry.host(), String.valueOf(entry.port()),
+                    config.host(), String.valueOf(selfPort)));
         }
     }
 
-    /** {@code register_ring <hash> <peer_host> <peer_port> <origin_host> <origin_port>} */
+    /**
+     * {@code register_ring <hash> <size> <encoded_name> <peer_host> <peer_port> <origin_host> <origin_port>}
+     */
     private void handleRegisterRing(Message message) {
-        String peerHost = message.arg(1);
-        int peerPort = parsePort(message.arg(2));
-        String originHost = message.arg(3);
-        int originPort = parsePort(message.arg(4));
+        String peerHost = message.arg(3);
+        int peerPort = parsePort(message.arg(4));
+        String originHost = message.arg(5);
+        int originPort = parsePort(message.arg(6));
 
-        if (!Md5.isValidHex(message.arg(0))) {
-            sendTo("ERROR invalid hash: " + message.arg(0), peerHost, peerPort);
+        ResourceEntry entry;
+        try {
+            entry = parseEntry(message.arg(0), message.arg(1), message.arg(2), peerHost, peerPort);
+        } catch (IllegalArgumentException e) {
+            sendTo("ERROR " + e.getMessage(), peerHost, peerPort);
             return;
         }
-        ResourceEntry entry = new ResourceEntry(message.arg(0), peerHost, peerPort);
 
         if (table.storeIfOwned(entry)) {
             log("Stored " + entry.toWire() + " (forwarded by the ring)");
@@ -226,6 +235,32 @@ public class SuperNode implements AutoCloseable {
         } else {
             sendToNext(message);
         }
+    }
+
+    /** Validates the register fields; the exception message is sent back to the peer after "ERROR ". */
+    private static ResourceEntry parseEntry(String hash, String rawSize, String encodedName, String host, int port) {
+        if (!Md5.isValidHex(hash)) {
+            throw new IllegalArgumentException("invalid hash: " + hash);
+        }
+        long size;
+        try {
+            size = Long.parseLong(rawSize);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("invalid size: " + rawSize);
+        }
+        if (size < 0) {
+            throw new IllegalArgumentException("invalid size: " + rawSize);
+        }
+        String name;
+        try {
+            name = ResourceEntry.decodeName(encodedName);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("invalid name: " + encodedName);
+        }
+        if (name.isBlank()) {
+            throw new IllegalArgumentException("invalid name: " + encodedName);
+        }
+        return new ResourceEntry(hash, host, port, size, name);
     }
 
     private void handleList(Packet packet) {
@@ -239,7 +274,7 @@ public class SuperNode implements AutoCloseable {
         if (isNextSelf()) {
             answerList(args);
         } else {
-            sendToNext(new Message(MessageType.LIST_RING, args));
+            sendToNext(new Message(MessageType.LIST_RING, args, null));
         }
     }
 
@@ -251,7 +286,7 @@ public class SuperNode implements AutoCloseable {
             return;
         }
         appendOwnEntries(args);
-        sendToNext(new Message(MessageType.LIST_RING, args));
+        sendToNext(new Message(MessageType.LIST_RING, args, null));
     }
 
     /** Sends the collected list back to the peer that asked for it (not to the previous hop). */
@@ -272,7 +307,7 @@ public class SuperNode implements AutoCloseable {
 
     /** Appends this node's entries to a list_ring payload while it still fits in one packet. */
     private void appendOwnEntries(List<String> args) {
-        int size = new Message(MessageType.LIST_RING, args).format().getBytes(StandardCharsets.UTF_8).length;
+        int size = new Message(MessageType.LIST_RING, args, null).header().getBytes(StandardCharsets.UTF_8).length;
         for (ResourceEntry entry : table.all()) {
             String wire = entry.toWire();
             if (args.contains(wire)) {
@@ -302,23 +337,27 @@ public class SuperNode implements AutoCloseable {
         return nextPort == selfPort && nextAddress.equals(selfAddress);
     }
 
-    private void reply(String content, Packet packet) {
-        send(content, packet.address(), packet.port());
+    private void reply(String text, Packet packet) {
+        sendText(text, packet.address(), packet.port());
     }
 
-    private void sendTo(String content, String host, int port) {
-        send(content, resolve(host), port);
+    private void sendTo(String text, String host, int port) {
+        sendText(text, resolve(host), port);
+    }
+
+    private void sendText(String text, InetAddress address, int port) {
+        try {
+            endpoint.sendText(text, address, port);
+        } catch (IllegalArgumentException e) {
+            log("Cannot send to " + address.getHostAddress() + ":" + port + ": " + e.getMessage());
+        }
     }
 
     private void sendToNext(Message message) {
-        send(message.format(), nextAddress, nextPort);
-    }
-
-    private void send(String content, InetAddress address, int port) {
         try {
-            endpoint.send(content, address, port);
+            endpoint.send(message, nextAddress, nextPort);
         } catch (IllegalArgumentException e) {
-            log("Cannot send to " + address.getHostAddress() + ":" + port + ": " + e.getMessage());
+            log("Cannot forward to " + nextAddress.getHostAddress() + ":" + nextPort + ": " + e.getMessage());
         }
     }
 

@@ -4,16 +4,19 @@ import java.net.InetAddress;
 import java.util.Objects;
 
 /**
- * A single UDP datagram received by a {@link UdpEndpoint}.
+ * A received UDP datagram: who sent it plus the exact bytes that arrived.
  *
- * @param address the address the packet came from
- * @param port    the port the packet came from
- * @param content the decoded text content of the packet
+ * <p>{@code data} is the raw payload (a UTF-8 header line, optionally followed by {@code 0x0A} and a
+ * binary body), kept exactly as received.</p>
+ *
+ * @param address address of the sender
+ * @param port    port of the sender
+ * @param data    exact received bytes
  */
-public record Packet(InetAddress address, int port, String content) {
+public record Packet(InetAddress address, int port, byte[] data) {
 
     public Packet {
         Objects.requireNonNull(address, "address must not be null");
-        Objects.requireNonNull(content, "content must not be null");
+        Objects.requireNonNull(data, "data must not be null");
     }
 }

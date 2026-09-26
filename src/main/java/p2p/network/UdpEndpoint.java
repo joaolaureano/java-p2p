@@ -9,12 +9,16 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Thin wrapper around a {@link DatagramSocket} that sends and receives text messages encoded in UTF-8.
+ * Thin wrapper around a {@link DatagramSocket} that sends and receives raw datagrams.
+ *
+ * <p>A datagram is a UTF-8 header line, optionally followed by {@code 0x0A} and a raw binary body, so
+ * the same endpoint carries small control messages and file chunks.</p>
  *
  * <p>Sending is safe from several threads. Only one thread should be receiving at a time, because
  * each {@code receive} call resets the socket timeout.</p>
@@ -22,7 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class UdpEndpoint implements AutoCloseable {
 
     /** Largest payload we are willing to send or receive, in bytes. */
-    public static final int MAX_PACKET_BYTES = 8192;
+    public static final int MAX_PACKET_BYTES = 9216;
 
     private final DatagramSocket socket;
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -52,30 +56,40 @@ public class UdpEndpoint implements AutoCloseable {
     }
 
     /**
-     * Sends a text message to the given address and port.
+     * Sends raw bytes to the given address and port.
      *
      * <p>Failures are logged to {@code System.err} and never close the socket, so a single bad send
      * does not take the whole node down.</p>
      *
-     * @throws IllegalArgumentException if the UTF-8 encoding of {@code content} is larger than
-     *                                  {@link #MAX_PACKET_BYTES}
+     * @throws IllegalArgumentException if {@code data} is larger than {@link #MAX_PACKET_BYTES}
      */
-    public void send(String content, InetAddress address, int port) {
-        Objects.requireNonNull(content, "content must not be null");
+    public void send(byte[] data, InetAddress address, int port) {
+        Objects.requireNonNull(data, "data must not be null");
         Objects.requireNonNull(address, "address must not be null");
 
-        byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
-        if (bytes.length > MAX_PACKET_BYTES) {
+        if (data.length > MAX_PACKET_BYTES) {
             throw new IllegalArgumentException(
-                    "Packet is too large: " + bytes.length + " bytes (max " + MAX_PACKET_BYTES + ")");
+                    "Packet is too large: " + data.length + " bytes (max " + MAX_PACKET_BYTES + ")");
         }
 
         try {
-            socket.send(new DatagramPacket(bytes, bytes.length, address, port));
+            socket.send(new DatagramPacket(data, data.length, address, port));
         } catch (IOException e) {
             System.err.println("[endpoint " + socket.getLocalPort() + "] Could not send to "
                     + address.getHostAddress() + ":" + port + ": " + e.getMessage());
         }
+    }
+
+    /** Sends a serialized {@link Message}. */
+    public void send(Message message, InetAddress address, int port) {
+        Objects.requireNonNull(message, "message must not be null");
+        send(message.toBytes(), address, port);
+    }
+
+    /** Sends plain UTF-8 text (used for simple replies such as {@code OK}). */
+    public void sendText(String text, InetAddress address, int port) {
+        Objects.requireNonNull(text, "text must not be null");
+        send(text.getBytes(StandardCharsets.UTF_8), address, port);
     }
 
     /**
@@ -131,9 +145,9 @@ public class UdpEndpoint implements AutoCloseable {
     }
 
     private static Packet toPacket(DatagramPacket datagram) {
-        String content = new String(datagram.getData(), datagram.getOffset(), datagram.getLength(),
-                StandardCharsets.UTF_8);
-        return new Packet(datagram.getAddress(), datagram.getPort(), content);
+        byte[] data = Arrays.copyOfRange(datagram.getData(), datagram.getOffset(),
+                datagram.getOffset() + datagram.getLength());
+        return new Packet(datagram.getAddress(), datagram.getPort(), data);
     }
 
     private void ensureOpen() {
